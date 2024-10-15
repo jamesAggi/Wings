@@ -1,12 +1,185 @@
 import * as THREE from 'three';
 import { applyPlanarUVs } from "./UVMapping";
-import { check_airfoil, read_airfoil, calculateAirfoilZ, naca_geometry } from '../utils/AirfoilHelpers';
+import { read_airfoil } from '../utils/AirfoilHelpers';
 import { calculateControlSurfaceIndices, generateIndicesForFaces } from '../utils/GeometyCalculation';
+import { math_rot_x, math_rot_y, math_rot_z, applyTwistAndDihedral } from '../utils/MathHelpers';
+
+export default class WingGeometry extends THREE.BufferGeometry {
+  constructor(parameters) {
+    super();
+    this.type = 'WingGeometry';
+
+    const {
+      side = 'both',
+      span = 4.0,
+      sweep = 0.0,
+      dihedral = 0.0,
+      washout = 0.0,
+      rootChord = 1.0,
+      tipChord = 1.0,
+      root_airfoil = "NACA 2412",
+      tip_airfoil = "NACA 2412",
+      nSeg = 40,
+      nAFseg = 50,
+      left_start = new THREE.Vector3(0.0, 0.0, 0.0),
+      right_start = new THREE.Vector3(0.0, 0.0, 0.0),
+      dy = 0.0,
+      control = {}
+    } = parameters;
+
+    const my_root_airfoil = read_airfoil(root_airfoil, nAFseg);
+    const my_tip_airfoil = read_airfoil(tip_airfoil, nAFseg);
+    const nairfoilpts = my_root_airfoil[0];
+
+    const vertices = [];
+    const indices = [];
+
+    // Generate wing geometry
+    generateWingGeometry(vertices, indices, {
+      side,
+      nSeg,
+      nairfoilpts,
+      my_root_airfoil,
+      my_tip_airfoil,
+      span,
+      sweep,
+      dihedral,
+      washout,
+      rootChord,
+      tipChord,
+      left_start,
+      right_start,
+      dy,
+      control
+    });
+
+    // Assign attributes
+    this.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(vertices), 3));
+    this.setIndex(indices);
+
+    // Apply UV mapping and compute normals
+    applyPlanarUVs(this);
+    this.computeVertexNormals();
+    this.computeBoundingSphere();
+  }
+}
+
+// Main function: Generate the wing geometry
+function generateWingGeometry(vertices, indices, config) {
+  const {
+    side,
+    nSeg,
+    nairfoilpts,
+    my_root_airfoil,
+    my_tip_airfoil,
+    span,
+    sweep,
+    dihedral,
+    washout,
+    rootChord,
+    tipChord,
+    left_start,
+    right_start,
+    dy,
+    control
+  } = config;
+
+  // Loop to handle both wings (left and/or right)
+  ['left', 'right'].forEach((wing_side) => {
+    if (side === 'both' || side === wing_side) {
+      const start_point = wing_side === 'left' ? left_start.clone() : right_start.clone();
+      const dtheta = Math.PI / nSeg;
+      const aerocenter = new THREE.Vector3(0, 0, 0);
+    
+      // Control surface indices
+      let csrooti = 0, cstipi = nSeg;
+      if (control.has_control_surface) {
+        ({ csrooti, cstipi } = calculateControlSurfaceIndices(control, nSeg, dtheta));
+      }
+
+      // Iterate over each wing section (move this inside the block handling each wing)
+      for (let y = 0; y <= nSeg; y++) {
+        const percent = 0.5 * (1.0 - Math.cos(dtheta * y)); // Spanwise distribution
+        const my_chord = rootChord + percent * (tipChord - rootChord);
+        const my_twist = -percent * washout; // Twist for washout effect
+
+        // Generate the aerocenter vector with sweep and dihedral
+        aerocenter.set(percent * span, span * Math.tan(dihedral * Math.PI / 180), span * Math.tan(sweep * Math.PI / 180));
+
+        // Invert direction for the left wing
+        if (wing_side === 'left') aerocenter.x = -aerocenter.x;
+
+        // Generate vertices for the airfoil section
+        for (let x = 0; x < nairfoilpts; x++) {
+          const airfoil_x = my_root_airfoil[1][x] + percent * (my_tip_airfoil[1][x] - my_root_airfoil[1][x]);
+          const airfoil_y = my_root_airfoil[2][x] + percent * (my_tip_airfoil[2][x] - my_root_airfoil[2][x]);
+
+          // Calculate the vertex position
+          const vertex = new THREE.Vector3(my_chord * (-airfoil_x + 0.25), 0.0, my_chord * (-airfoil_y));
+
+          // Apply twist and dihedral
+          applyTwistAndDihedral(vertex, my_twist, dihedral, wing_side);
+
+          // Adjust position based on aerocenter and starting point
+          vertex.add(aerocenter).add(start_point).add(new THREE.Vector3(0, dy, 0));
+
+          // Add vertex to the array
+          vertices.push(vertex.x, vertex.y, vertex.z);
+        }
+      }
+    }
+  });
+
+  // Generate faces (triangles) for the wing
+  generateIndicesForFaces(indices, vertices.length / 3, nairfoilpts, nSeg);
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import * as THREE from 'three';
+import { applyPlanarUVs } from "./UVMapping";
+import { runFlightSimulation } from '../Simulation/runFlightSimulation';
+import SimModel from '../Simulation/SimModel';
+import { check_airfoil, read_airfoil, calculateAirfoilZ, naca_geometry } from '../utils/AirfoilHelpers';
+import { deleteDuplicateComponents, deleteComponent } from '../utils/ComponentHelpers';
+import { calculateMeanChord, calculateArea, calculateAspectRatio, calculateSkinWeight, calculateFuelVolume, calculateFuelWeight, calculateTotalWeight, calculateBestVelocity, calculateRequiredCL, calculateControlSurfaceIndices, generateIndicesForFaces } from '../utils/GeometyCalculation';
+import { calculateCm1, calculateCm2, calculateScalingFactor, adjustVelocityForMachEffects } from '../utils/MachCalculations';
 import { math_compute_normal, math_rot_x, math_rot_y, math_rot_z, applyTwistAndDihedral } from '../utils/MathHelpers';
+import { unlockAccount } from '../utils/unlockAccount';
 
 export class WingGeometry extends THREE.BufferGeometry {
   constructor(is_main, side, span, sweep, dihedral, mount, washout, rootChord, tipChord, root_airfoil, tip_airfoil, nSeg, nAFseg, left_start, right_start, dy, control, same_as_root) {
     super();
+    console.log
     this.type = 'WingGeometry';
 
     this.parameters = {
@@ -119,38 +292,62 @@ function generateWingGeometry(vertices, indices, config) {
 
     const my_side = iwing === 2 ? 'left' : 'right';
     const start_point = my_side === 'left' ? left_start.clone() : right_start.clone();
-      // Control surface indices
-      const dtheta = Math.PI / nSeg;
-      let csrooti = 0,
-        cstipi = nSeg;
-      if (control.has_control_surface) {
-        ({ csrooti, cstipi } = calculateControlSurfaceIndices(control, nSeg, dtheta));
-      }
-
-      // Generate the vertices for the wing
-      generateWingVerticesAndControlSurfaces(vertices, {
-        nSeg,
-        nairfoilpts,
-        my_root_airfoil,
-        my_tip_airfoil,
-        span,
-        sweep,
-        dihedral,
-        mount,
-        washout,
-        rootChord,
-        tipChord,
-        csrooti,
-        cstipi,
-        control,
-        my_side,
-        start_point,
-        dy
-      });
-
-      // Generate faces and indices for the wing
-      generateIndicesForFaces(indices, vertices.length / 3, nairfoilpts, nSeg);
+    
+    generateSingleWing(vertices, indices, {
+      my_side,
+      start_point,
+      nSeg,
+      nairfoilpts,
+      my_root_airfoil,
+      my_tip_airfoil,
+      span,
+      sweep,
+      dihedral,
+      mount,
+      washout,
+      rootChord,
+      tipChord,
+      dy,
+      control
+    });
   }
+}
+
+// Function to generate a single wing (either left or right)
+function generateSingleWing(vertices, indices, config) {
+  const { my_side, start_point, nSeg, nairfoilpts, my_root_airfoil, my_tip_airfoil, span, sweep, dihedral, mount, washout, rootChord, tipChord, dy, control } = config;
+
+  // Control surface indices
+  const dtheta = Math.PI / nSeg;
+  let csrooti = 0,
+    cstipi = nSeg;
+  if (control.has_control_surface) {
+    ({ csrooti, cstipi } = calculateControlSurfaceIndices(control, nSeg, dtheta));
+  }
+
+  // Generate the vertices for the wing
+  generateWingVerticesAndControlSurfaces(vertices, {
+    nSeg,
+    nairfoilpts,
+    my_root_airfoil,
+    my_tip_airfoil,
+    span,
+    sweep,
+    dihedral,
+    mount,
+    washout,
+    rootChord,
+    tipChord,
+    csrooti,
+    cstipi,
+    control,
+    my_side,
+    start_point,
+    dy
+  });
+
+  // Generate faces and indices for the wing
+  generateIndicesForFaces(indices, vertices.length / 3, nairfoilpts, nSeg);
 }
 
 // Function to generate the vertices for the wing, including control surface deflection
@@ -201,13 +398,19 @@ function generateWingVerticesAndControlSurfaces(vertices, config) {
     }
 
     // Calculate aerocenter vector for current spanwise position
-    const qvec = new THREE.Vector3(0, span / Math.cos((sweep * Math.PI) / 180.0), 0);
+    const qvec = new THREE.Vector3(
+      0, span / Math.cos((sweep * Math.PI) / 180.0), 0);
     math_rot_z(qvec, (sweep * Math.PI) / 180.0);
     math_rot_x(qvec, (-dihedral * Math.PI) / 180.0);
 
     aerocenter.x = percent * qvec.x;
     aerocenter.y = percent * qvec.y;
     aerocenter.z = percent * qvec.z;
+
+    // Invert direction if on left side
+    if (my_side === 'left') {
+      qvec.y = -qvec.y;
+    }
 
     // Generate vertices for each airfoil section
     for (let x = 0; x < nairfoilpts; x++) {

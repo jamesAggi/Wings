@@ -37,8 +37,8 @@ const writeAnalysisWingsJson = (myObject, connectID) => {
                 dihedral: parameters.dihedral,
                 mounting_angle: parameters.mount,
                 washout: parameters.washout,
-                root_chord: parameters.root_chord,
-                tip_chord: parameters.tip_chord,
+                rootChord: parameters.rootChord,
+                tipChord: parameters.tipChord,
                 airfoils: {
                     af1: parameters.root_airfoil[rootName],
                     af2: parameters.tip_airfoil[tipName],

@@ -1,5 +1,5 @@
 
-THREE.PropGeometry = function (nblades, rotation, diameter, pitch, hub_radius, root_chord, tip_chord, root_airfoil, tip_airfoil, nSeg, nAFseg) {
+THREE.PropGeometry = function (nblades, rotation, diameter, pitch, hub_radius, rootChord, tipChord, root_airfoil, tip_airfoil, nSeg, nAFseg) {
     THREE.BufferGeometry.call(this);
     this.type = 'PropGeometry';
 
@@ -9,8 +9,8 @@ THREE.PropGeometry = function (nblades, rotation, diameter, pitch, hub_radius, r
     diameter = diameter || 1.0;
     pitch = pitch || 0.4;
     hub_radius = hub_radius || 0.05;
-    root_chord = root_chord || 0.1;
-    tip_chord = tip_chord || 0.02;
+    rootChord = rootChord || 0.1;
+    tipChord = tipChord || 0.02;
     nSeg = nSeg || 10;
     nAFseg = nAFseg || 50;
 
@@ -30,7 +30,7 @@ THREE.PropGeometry = function (nblades, rotation, diameter, pitch, hub_radius, r
     // Blade creation logic
     for (let iblade = 0; iblade < nblades; iblade++) {
         const theta = (iblade * 2.0 * Math.PI) / nblades;
-        createBlade(theta, positions, normals, uvs, rotation, span, pitch, hub_radius, root_chord, tip_chord, root_airfoil, tip_airfoil, nSeg, nAFseg);
+        createBlade(theta, positions, normals, uvs, rotation, span, pitch, hub_radius, rootChord, tipChord, root_airfoil, tip_airfoil, nSeg, nAFseg);
     }
 
     // Set up BufferGeometry attributes
@@ -40,13 +40,13 @@ THREE.PropGeometry = function (nblades, rotation, diameter, pitch, hub_radius, r
 
     this.computeBoundingSphere();
 
-    function createBlade(theta, positions, normals, uvs, rotation, span, pitch, hub_radius, root_chord, tip_chord, root_airfoil, tip_airfoil, nSeg, nAFseg) {
+    function createBlade(theta, positions, normals, uvs, rotation, span, pitch, hub_radius, rootChord, tipChord, root_airfoil, tip_airfoil, nSeg, nAFseg) {
         // Same logic from the original function but using buffers for positions, normals, and UVs
         // Example: Interpolate airfoils, calculate twist and geometry, then add positions/normals.
         
         for (let y = 0; y <= nSeg; y++) {
             const percent = 0.5 * (1.0 - Math.cos(dtheta * y));
-            const chord = root_chord + percent * (tip_chord - root_chord);
+            const chord = rootChord + percent * (tipChord - rootChord);
             const r1 = hub_radius + percent * span;
             const twist = Math.atan(pitch / (2.0 * Math.PI * r1));
 

@@ -6,3 +6,36 @@
 body {
   margin: 0;
 }
+
+/* CSS for positioning textboxes beside sliders */
+.control-panel {
+  position: absolute;
+  top: 50px;
+  right: 20px;
+  width: 250px;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent */
+  border-radius: 8px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); /* Shadow */
+  z-index: 10;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.control-row label {
+  width: 100px; /* Adjust this width to fit your labels */
+}
+
+.control-slider {
+  width: 100px; /* Set width for the slider */
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.control-textbox {
+  width: 50px; /* Set width for the textbox */
+}

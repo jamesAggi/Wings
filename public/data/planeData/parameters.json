@@ -1,0 +1,73 @@
+{
+  "isMainWing": true,
+  "sideType": "both",
+  "span": 24.0,
+  "spanMin": 10,
+  "spanMax": 50,
+  "sweep": 0.0,
+  "sweepMin": 0,
+  "sweepMax": 50,
+  "dihedral": 0.0,
+  "dihedralMin": 0,
+  "dihedralMax": 20,
+  "mount": 0,
+  "washout": 0.0,
+  "washoutMin": -10,
+  "washoutMax": 10,
+  "rootChord": 3.5,
+  "rootChordMin": 1,
+  "rootChordMax": 10,
+  "tipChord": 1.75,
+  "tipChordMin": 0.5,
+  "tipChordMax": 5,
+  "rootAirfoil": {
+    "NACA 2412": {
+      "properties": {
+        "type": "linear",
+        "alpha_L0": -0.036899751,
+        "CL_alpha": 6.283185307,
+        "Cm_L0": -0.0527,
+        "Cm_alpha": -0.08,
+        "CD0": 0.0055,
+        "CD0_L": -0.0045,
+        "CD0_L2": 0.01,
+        "CL_max": 1.4
+      }
+    }
+  },
+  "tipAirfoil": {
+    "NACA 2412": {
+      "properties": {
+        "type": "linear",
+        "alpha_L0": -0.036899751,
+        "CL_alpha": 6.283185307,
+        "Cm_L0": -0.0527,
+        "Cm_alpha": -0.08,
+        "CD0": 0.0055,
+        "CD0_L": -0.0045,
+        "CD0_L2": 0.01,
+        "CL_max": 1.4
+      }
+    }
+  },
+  "segments": 10,
+  "chordwiseSegments": 20,
+  "leftStart": [0, 0, 0],
+  "rightStart": [0, 0, 0],
+  "yOffset": 0,
+  "control": {
+    "has_control_surface": false,
+    "span_root": 0.2,
+    "span_tip": 0.8,
+    "chord_root": 0.2,
+    "chord_tip": 0.2,
+    "is_sealed": 1,
+    "mix": {
+      "elevator": 1.0,
+      "rudder": 0.0,
+      "aileron": 0.0,
+      "flap": 0.0
+    }
+  },
+  "sameAsRoot": true
+}

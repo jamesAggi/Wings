@@ -75,20 +75,34 @@ export const calculateControlSurfaceIndices = (control, nSeg, dtheta) => {
     return { csrooti, cstipi };
 };
 
-// Function to generate indices for faces
+// Function to generate indices for faces, including closing the wing tip
 export const generateIndicesForFaces = (indices, indexOffset, nairfoilpts, nSeg) => {
-  for (let y = 0; y < nSeg; y++) {
-    for (let x = 0; x < nairfoilpts - 1; x++) {
-      const a = indexOffset + y * nairfoilpts + x;
-      const b = indexOffset + (y + 1) * nairfoilpts + x;
-      const c = indexOffset + (y + 1) * nairfoilpts + (x + 1);
-      const d = indexOffset + y * nairfoilpts + (x + 1);
-
-      indices.push(a, b, d);
-      indices.push(b, c, d);
+    // Generate side faces for the wing
+    for (let y = 0; y < nSeg; y++) {
+      for (let x = 0; x < nairfoilpts - 1; x++) {
+        const a = indexOffset + y * nairfoilpts + x;
+        const b = indexOffset + (y + 1) * nairfoilpts + x;
+        const c = indexOffset + (y + 1) * nairfoilpts + (x + 1);
+        const d = indexOffset + y * nairfoilpts + (x + 1);
+  
+        indices.push(a, b, d);
+        indices.push(b, c, d);
+      }
     }
-  }
-};
+  
+    // Close the wing tip (last airfoil section)
+    const tipStartIndex = indexOffset + nSeg * nairfoilpts; // Start index of the last airfoil section
+  
+    for (let x = 0; x < nairfoilpts - 1; x++) {
+      const a = tipStartIndex + x;
+      const b = tipStartIndex + x + 1;
+      const centerVertex = tipStartIndex + nairfoilpts; // Optional center vertex if needed
+  
+      // Create triangles to close the wing tip (no center vertex)
+      indices.push(a, b, tipStartIndex); // Close the wing tip with the first vertex of the airfoil
+    }
+  };
+  
 
 function calculateVertexWithControl(my_chord, airfoil_x, airfoil_y, percent, my_twist, dihedral, my_side, control, csrooti, cstipi, y, start_point) {
   const vertex = new THREE.Vector3(

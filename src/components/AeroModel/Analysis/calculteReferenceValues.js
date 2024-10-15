@@ -23,11 +23,11 @@ const addWingReferenceValues = (myObject) => {
                 console.log('Including area of', childObject.name);
 
                 let length = parameters.span;
-                let area = length * 0.5 * (parameters.root_chord + parameters.tip_chord);
+                let area = length * 0.5 * (parameters.rootChord + parameters.tipChord);
 
                 // Handle elliptic wing
-                if (parameters.tip_chord < 0.0) {
-                    const cbar = Math.PI * parameters.root_chord / 4.0;
+                if (parameters.tipChord < 0.0) {
+                    const cbar = Math.PI * parameters.rootChord / 4.0;
                     area = length * cbar;
                 }
 

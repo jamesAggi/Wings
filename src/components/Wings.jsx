@@ -1,15 +1,32 @@
-import React, { useMemo } from 'react';
-import { WingGeometry } from './AeroModel/geometry/WingGeometry'; // Correct path
-import { useTexture } from '@react-three/drei'; // Import useTexture for loading textures
-import { WingMaterials } from './AeroModel/materials/wingMaterial'; // Import the materials
+import React, { useRef, useMemo } from 'react';
+import WingGeometry from './AeroModel/geometry/WingGeometry'; // Import the correct WingGeometry
+import { useLoader } from '@react-three/fiber';
+import * as THREE from 'three';
+import { TextureLoader } from 'three';
 
 const Wings = ({ parameters, texturePath }) => {
-  const geometry = useMemo(() => {
-    if (!parameters) return null;
+  const rightMeshRef = useRef(); // Separate refs for the right and left wing meshes
+  const leftMeshRef = useRef();
 
+  // Load texture using the texture path or fallback
+  const texture = useLoader(TextureLoader, texturePath || '/public/images/striped.png');
+
+  // Configure texture wrapping and tiling (optional)
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1, 1);
+
+  // Memoize the geometry generation based on the updated parameters
+  const geometry = useMemo(() => {
+    if (!parameters) {
+      console.error("No parameters provided to WingGeometry");
+      return null;
+    }
+
+    // Pass the updated parameters to generate the geometry
     return new WingGeometry(
-      parameters.isMainWing,
-      parameters.sideType,
+      parameters.is_main,
+      parameters.side,
       parameters.span,
       parameters.sweep,
       parameters.dihedral,
@@ -17,42 +34,46 @@ const Wings = ({ parameters, texturePath }) => {
       parameters.washout,
       parameters.rootChord,
       parameters.tipChord,
-      parameters.rootAirfoil,
-      parameters.tipAirfoil,
-      parameters.segments,
-      parameters.chordwiseSegments,
-      parameters.leftStart,
-      parameters.rightStart,
-      parameters.yOffset,
+      parameters.root_airfoil,
+      parameters.tip_airfoil,
+      parameters.nSeg,
+      parameters.nAFseg,
+      parameters.left_start,
+      parameters.right_start,
+      parameters.dy,
       parameters.control,
-      parameters.sameAsRoot
+      parameters.same_as_root
     );
   }, [parameters]);
 
-  if (!geometry) return null;
-
-  // Call useTexture with a fallback even when there's no texturePath to maintain consistent hook usage
-  const texture = useTexture(texturePath ? texturePath : '');
-
-  // Memoize the material selection based on the presence of texture
-  const material = useMemo(() => {
-    if (texture) {
-      return new THREE.MeshStandardMaterial({ map: texture });
-    } else {
-      return WingMaterials(); // Fallback material
-    }
-  }, [texture]);
+  if (!geometry) return null;  // Return null if geometry is not generated
 
   return (
     <>
-      <mesh geometry={geometry} material={material} />
-      
-      {/* Wireframe Overlay */}
-      <mesh geometry={geometry}>
-        <meshBasicMaterial color="black" wireframe />
-      </mesh>
+      {/* Group for the right wing */}
+      <group rotation={[Math.PI / 2, 0, 0]}> {/* Rotate 90 degrees on the X-axis */}
+        {/* Right Wing */}
+        <mesh ref={rightMeshRef} geometry={geometry} position={[0, 0, 0]} frustumCulled={false}>
+          <meshBasicMaterial map={texture} side={THREE.DoubleSide} />
+        </mesh>
+        <mesh ref={rightMeshRef} geometry={geometry} position={[0, 0, 0]} frustumCulled={false}>
+          <meshBasicMaterial color="cyan" wireframe />
+        </mesh>
+      </group>
+
+      {/* Group for the left wing */}
+      <group rotation={[Math.PI / 2, 0, 0]}> {/* Rotate 90 degrees on the X-axis */}
+        {/* Left Wing (Mirrored) */}
+        <mesh ref={leftMeshRef} geometry={geometry} position={[0, 0, 0]} scale={[1, -1, 1]} frustumCulled={false}>
+          <meshBasicMaterial map={texture} side={THREE.DoubleSide} />
+        </mesh>
+        <mesh ref={leftMeshRef} geometry={geometry} position={[0, 0, 0]} scale={[1, -1, 1]} frustumCulled={false}>
+          <meshBasicMaterial color="cyan" wireframe />
+        </mesh>
+      </group>
     </>
   );
 };
 
 export default Wings;
+
